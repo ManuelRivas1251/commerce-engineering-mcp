@@ -1,0 +1,37 @@
+{
+  "name": "commerce-engineering-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Dynamics 365 Commerce development assistance",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "cheerio": "^1.0.0",
+    "fast-glob": "^3.3.3",
+    "node-cache": "^5.1.2",
+    "pino": "^9.6.0",
+    "simple-git": "^3.27.0",
+    "undici": "^7.10.0",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/node-cache": "^4.2.5",
+    "@vitest/coverage-v8": "^4.1.9",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.9"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "commerce-engineering-mcp": {
+      "command": "node",
+      "args": ["C:\\AMSourceControl\\Tools\\commerce-engineering-mcp\\dist\\server.js"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "NODE_ENV": "production",
+        "GITHUB_TOKEN": "",
+        "COMMERCE_WORKSPACE_PATH": ""
+      }
+    }
+  }
+}

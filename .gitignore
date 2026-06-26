@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+.mcp/sdk-cache/
+.mcp/docs-cache/
+*.js.map
