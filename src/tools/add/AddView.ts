@@ -17,16 +17,6 @@ export const AddViewTool: RegisteredTool = {
   definition: {
     name: "AddView",
     description: "Generates a Store Commerce POS custom view (ViewController + HTML template) following the official CustomViewControllerBase pattern.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        name: { type: "string", description: "View class name e.g. CustomProductSearchView" },
-        description: { type: "string" },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "name"],
-    },
   },
   schema: AddViewSchema,
   handler: async (input: unknown) => {

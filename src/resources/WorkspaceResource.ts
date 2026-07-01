@@ -37,4 +37,10 @@ export const WORKSPACE_RESOURCES: Resource[] = [
     description: "Architecture map of the Commerce project",
     mimeType: "application/json",
   },
+  {
+    uri: "commerce://docs",
+    name: "Embedded Docs Catalog",
+    description: "Static embedded catalog of official Microsoft Learn documentation for Dynamics 365 Commerce SDK",
+    mimeType: "application/json",
+  },
 ];

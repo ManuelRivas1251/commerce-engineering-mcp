@@ -17,16 +17,6 @@ export const AddDialogTool: RegisteredTool = {
   definition: {
     name: "AddDialog",
     description: "Generates a Store Commerce POS custom dialog (Request + Handler) using the official ShowDialogClientRequest pattern. Validates before generating.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        name: { type: "string", description: "Dialog class name e.g. PinInputDialog" },
-        description: { type: "string" },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "name"],
-    },
   },
   schema: AddDialogSchema,
   handler: async (input: unknown) => {

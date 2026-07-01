@@ -26,19 +26,6 @@ export const SearchSDKTool: RegisteredTool = {
     description:
       "Searches the local SDK cache or the official GitHub repository for SDK types, " +
       "interfaces, and APIs in the correct Commerce version branch.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        area: {
-          type: "string",
-          enum: ["POS", "CRT", "RetailServer", "HardwareStation", "All"],
-        },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchSDKSchema,
   handler: async (input: unknown) => {

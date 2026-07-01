@@ -10,11 +10,6 @@ export const ListExistingDialogsTool: RegisteredTool = {
   definition: {
     name: "ListExistingDialogs",
     description: "Returns all custom POS Dialogs detected in the workspace from the local index.",
-    inputSchema: {
-      type: "object",
-      properties: { workspacePath: { type: "string" } },
-      required: ["workspacePath"],
-    },
   },
   schema: ListExistingDialogsSchema,
   handler: async (input: unknown) => {

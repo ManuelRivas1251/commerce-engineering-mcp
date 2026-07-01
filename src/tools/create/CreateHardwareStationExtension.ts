@@ -20,19 +20,6 @@ export const CreateHardwareStationExtensionTool: RegisteredTool = {
   definition: {
     name: "CreateHardwareStationExtension",
     description: "Scaffolds a complete Hardware Station extension project: IHardwareStationController implementation + .csproj. Based on official Microsoft patterns from Dynamics365Commerce.Solutions.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        targetPath: { type: "string" },
-        namespace: { type: "string" },
-        projectName: { type: "string" },
-        controllerName: { type: "string" },
-        deviceName: { type: "string" },
-        description: { type: "string" },
-        workspacePath: { type: "string" },
-      },
-      required: ["targetPath", "namespace", "projectName", "controllerName", "deviceName"],
-    },
   },
   schema: CreateHardwareStationExtensionSchema,
   handler: async (input: unknown) => {

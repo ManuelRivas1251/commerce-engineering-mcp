@@ -1,14 +1,11 @@
 import type { ZodSchema } from "zod";
 import { logger } from "./Logger.js";
 
+// The JSON Schema exposed to clients is derived from each tool's Zod schema
+// by the MCP SDK — never hand-written, so it cannot drift.
 export interface ToolDefinition {
   name: string;
   description: string;
-  inputSchema: {
-    type: string;
-    properties?: Record<string, unknown>;
-    required?: string[];
-  };
 }
 
 export interface RegisteredTool {
@@ -36,18 +33,16 @@ export class ToolRegistry {
     return Array.from(this.tools.values()).map((t) => t.definition);
   }
 
-  async dispatch(name: string, rawInput: unknown): Promise<unknown> {
+  // Input is validated by the MCP SDK against the tool's Zod shape before the
+  // server calls dispatch, so it is not re-parsed here. Callers outside the
+  // SDK pipeline (e.g. tests) must validate with `tool.schema` themselves.
+  async dispatch(name: string, input: unknown): Promise<unknown> {
     const tool = this.tools.get(name);
     if (!tool) {
       throw new Error(`Unknown tool: ${name}`);
     }
 
-    const parsed = tool.schema.safeParse(rawInput);
-    if (!parsed.success) {
-      throw new Error(`Invalid input for tool "${name}": ${parsed.error.message}`);
-    }
-
     logger.info({ tool: name }, "Dispatching tool");
-    return tool.handler(parsed.data);
+    return tool.handler(input);
   }
 }

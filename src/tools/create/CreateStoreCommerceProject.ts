@@ -15,17 +15,6 @@ export const CreateStoreCommerceProjectTool: RegisteredTool = {
     name: "CreateStoreCommerceProject",
     description:
       "Scaffolds a full Commerce extension solution matching the real AMSales/AMP structure: repo root with repo.props + nuget.config, then src/<Name>/ with CommerceRuntime, POS, ScaleUnit, ScaleUnit.Installer, StoreCommerce.Installer, HardwareStation, HardwareStation.Installer and ChannelDatabase projects.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        targetPath: { type: "string" },
-        packageName: { type: "string" },
-        publisher: { type: "string" },
-        description: { type: "string" },
-        workspacePath: { type: "string" },
-      },
-      required: ["targetPath", "packageName"],
-    },
   },
   schema: CreateStoreCommerceProjectSchema,
   handler: async (input: unknown) => {
@@ -426,6 +415,53 @@ EndGlobal`;
     }
 }`;
 
+    // ── DefinePosExtensionPackageTrigger — REQUIRED for the POS package to load.
+    // Store Commerce calls GetExtensionPackageDefinitions on the CRT at startup and
+    // only activates packages returned with IsEnabled = true. Without this trigger
+    // the installed extension never appears in POS (not even in Settings).
+    // Docs: https://learn.microsoft.com/en-us/dynamics365/commerce/dev-itpro/pos-extension/pos-extension-basics
+    const definePosExtensionPackageTrigger = `namespace ${name}.CommerceRuntime
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using Microsoft.Dynamics.Commerce.Runtime;
+    using Microsoft.Dynamics.Commerce.Runtime.DataModel;
+    using Microsoft.Dynamics.Commerce.Runtime.Messages;
+
+    /// <summary>
+    /// Registers the ${name} POS extension package so Store Commerce loads it.
+    /// POS calls GetExtensionPackageDefinitions at startup and only activates the
+    /// packages returned with IsEnabled = true. Name must match manifest.json "name"
+    /// and Publisher must match manifest.json "publisher" exactly.
+    /// </summary>
+    public sealed class DefinePosExtensionPackageTrigger : IRequestTriggerAsync
+    {
+        public IEnumerable<Type> SupportedRequestTypes =>
+            new[] { typeof(GetExtensionPackageDefinitionsRequest) };
+
+        public Task OnExecuting(Request request)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task OnExecuted(Request request, Response response)
+        {
+            ThrowIf.Null(response, nameof(response));
+
+            var extensionsResponse = (GetExtensionPackageDefinitionsResponse)response;
+            extensionsResponse.ExtensionPackageDefinitions.Add(new ExtensionPackageDefinition
+            {
+                Name = "${name}",
+                Publisher = "${publisher}",
+                IsEnabled = true,
+            });
+
+            return Task.CompletedTask;
+        }
+    }
+}`;
+
     const channelDbSql = `-- ============================================================
 -- ${name} Channel Database Extension
 -- Place SQL scripts here to extend the channel database
@@ -452,6 +488,7 @@ EndGlobal`;
       { relativePath: `${S}/${name}.CommerceRuntime/Handlers/SampleRequestHandler.cs`,                        content: sampleHandler,        language: "csharp" as const },
       { relativePath: `${S}/${name}.CommerceRuntime/Messages/SampleRequest.cs`,                               content: sampleRequest,        language: "csharp" as const },
       { relativePath: `${S}/${name}.CommerceRuntime/Messages/SampleResponse.cs`,                              content: sampleResponse,       language: "csharp" as const },
+      { relativePath: `${S}/${name}.CommerceRuntime/Triggers/DefinePosExtensionPackageTrigger.cs`,            content: definePosExtensionPackageTrigger, language: "csharp" as const },
       // ── POS
       { relativePath: `${S}/${name}.POS/${name}.POS.csproj`,                                                  content: posCsproj,            language: "xml"  as const },
       { relativePath: `${S}/${name}.POS/manifest.json`,                                                       content: manifest,             language: "json" as const },
@@ -489,6 +526,7 @@ EndGlobal`;
         `    Handlers/SampleRequestHandler.cs`,
         `    Messages/SampleRequest.cs`,
         `    Messages/SampleResponse.cs`,
+        `    Triggers/DefinePosExtensionPackageTrigger.cs ← REQUIRED: registers the POS package via GetExtensionPackageDefinitions (without it, POS never loads the extension)`,
         `  ${name}.POS/                      ← Sdk.Pos + knockoutjs + ProjectRef→CRT`,
         `    manifest.json`,
         `    tsconfig.json                   ← baseUrl + knockout path + sourceMap`,

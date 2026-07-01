@@ -19,18 +19,6 @@ export const AddManifestTool: RegisteredTool = {
   definition: {
     name: "AddManifest",
     description: "Generates a Store Commerce POS manifest.json following the official schema (src/ExtendedLogon/Pos/manifest.json pattern). Detects the minimum POS version from the workspace.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        packageName: { type: "string", description: "Extension package name" },
-        publisher: { type: "string" },
-        version: { type: "string" },
-        description: { type: "string" },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "packageName"],
-    },
   },
   schema: AddManifestSchema,
   handler: async (input: unknown) => {

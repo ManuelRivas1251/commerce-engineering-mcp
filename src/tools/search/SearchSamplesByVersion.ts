@@ -16,15 +16,6 @@ export const SearchSamplesByVersionTool: RegisteredTool = {
     description:
       "Searches for official samples in Dynamics365Commerce.Solutions scoped strictly to the " +
       "specified version branch. Never returns samples from a different version.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        version: { type: "string", description: "Commerce version e.g. '10.0.46'" },
-        maxResults: { type: "number" },
-      },
-      required: ["query", "version"],
-    },
   },
   schema: SearchSamplesByVersionSchema,
   handler: async (input: unknown) => {

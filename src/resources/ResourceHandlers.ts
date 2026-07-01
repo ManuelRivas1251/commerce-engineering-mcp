@@ -17,6 +17,7 @@ import { SDKCache } from "../sources/SDKCache.js";
 import { GitHubClient } from "../sources/GitHubClient.js";
 import { ArchitectureAdvisor } from "../core/ArchitectureAdvisor.js";
 import { logger } from "../core/Logger.js";
+import { getCatalogIndex, DOCS_CATALOG } from "../sources/DocsCatalog.js";
 
 const GLOBAL_DIR = path.join(os.homedir(), ".commerce-engineering-mcp");
 const LAST_WORKSPACE_FILE = path.join(GLOBAL_DIR, "last-workspace.json");
@@ -226,6 +227,32 @@ export async function handleSdkResource(): Promise<string> {
       { area: "RetailServer", path: "src/Extensions.AbandonedCartSample/", description: "Retail Server extension samples" },
       { area: "HardwareStation", path: "src/FiscalIntegration/EFRSample/HardwareStation/", description: "Hardware Station samples" },
     ],
+  }, null, 2);
+}
+
+// ─── Resource: commerce://docs ─────────────────────────────────────────────
+
+export async function handleDocsResource(): Promise<string> {
+  const index = getCatalogIndex();
+
+  const byCategory = index.reduce<Record<string, typeof index>>((acc, entry) => {
+    if (!acc[entry.category]) acc[entry.category] = [];
+    acc[entry.category].push(entry);
+    return acc;
+  }, {});
+
+  return JSON.stringify({
+    title: "Commerce SDK — Embedded Microsoft Learn Documentation Catalog",
+    description:
+      "Static knowledge base of official Microsoft Learn articles, embedded verbatim in the MCP. " +
+      "Available offline, zero hallucination risk. Search via SearchDocumentation with source EmbeddedDocs.",
+    totalEntries: DOCS_CATALOG.length,
+    lastUpdated: "2026-06-29",
+    usage: "Call SearchDocumentation with sources=[\"EmbeddedDocs\"] to search this catalog.",
+    categorySummary: Object.fromEntries(
+      Object.entries(byCategory).map(([cat, entries]) => [cat, entries.length])
+    ),
+    entries: index,
   }, null, 2);
 }
 

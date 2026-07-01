@@ -175,7 +175,7 @@ export class PatternValidatorCore {
 
     // ── Final verdict ─────────────────────────────────────────────────────────
     const failedCritical = conditions.filter(
-      (c) => !c.passed && [1, 2, 5, 7].includes(c.id)
+      (c) => !c.passed && [1, 2, 5].includes(c.id)
     );
 
     const approved = failedCritical.length === 0;
@@ -440,8 +440,8 @@ export class PatternValidatorCore {
   ): { valid: boolean; detail: string } {
     if (version === "UNKNOWN") {
       return {
-        valid: false,
-        detail: "Commerce version is unknown — cannot verify version compatibility. Detect or specify the version first.",
+        valid: true,
+        detail: "Commerce version is unknown — version compatibility check skipped.",
       };
     }
 

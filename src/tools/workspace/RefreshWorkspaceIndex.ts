@@ -17,14 +17,6 @@ export const RefreshWorkspaceIndexTool: RegisteredTool = {
     description:
       "Forces a full rebuild of the local .mcp/ index for the given workspace. " +
       "Use after adding new files, changing the SDK version, or when the index appears stale.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string", description: "Absolute path to the workspace root" },
-        force: { type: "boolean", description: "Force rebuild even if index is fresh" },
-      },
-      required: ["workspacePath"],
-    },
   },
   schema: RefreshWorkspaceIndexSchema,
   handler: async (input: unknown) => {

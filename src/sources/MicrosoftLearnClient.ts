@@ -4,6 +4,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import crypto from "crypto";
 import { logger } from "../core/Logger.js";
+import { searchDocs, type DocSearchResult } from "./DocsCatalog.js";
 
 const MS_LEARN_SEARCH_API = "https://learn.microsoft.com/api/search";
 const MS_LEARN_BASE = "https://learn.microsoft.com";
@@ -154,6 +155,11 @@ export class MicrosoftLearnClient {
       logger.debug({ pageUrl, err }, "Failed to fetch MS Learn page");
       return null;
     }
+  }
+
+  /** Search the static embedded documentation catalog (no network required). */
+  searchEmbedded(query: string, maxResults = 5): DocSearchResult[] {
+    return searchDocs(query, maxResults);
   }
 
   // Search and enrich top results with page content.

@@ -10,11 +10,6 @@ export const ListExistingRequestsTool: RegisteredTool = {
   definition: {
     name: "ListExistingRequests",
     description: "Returns all custom CRT/POS Requests detected in the workspace from the local index.",
-    inputSchema: {
-      type: "object",
-      properties: { workspacePath: { type: "string" } },
-      required: ["workspacePath"],
-    },
   },
   schema: ListExistingRequestsSchema,
   handler: async (input: unknown) => {

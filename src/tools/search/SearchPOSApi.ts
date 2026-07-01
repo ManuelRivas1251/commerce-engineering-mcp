@@ -17,16 +17,6 @@ export const SearchPOSApiTool: RegisteredTool = {
     description:
       "Searches for official Store Commerce POS APIs, operations, triggers, " +
       "request/response types, and interfaces for the detected Commerce version.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-        maxResults: { type: "number" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchPOSApiSchema,
   handler: async (input: unknown) => {

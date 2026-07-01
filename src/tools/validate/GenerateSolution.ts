@@ -31,22 +31,6 @@ export const GenerateSolutionTool: RegisteredTool = {
       "covering all requested areas (POS, CRT, Retail Server, Hardware Station). " +
       "First runs ArchitectureAdvisor to plan, then validates ALL patterns via PatternValidator before generating any code. " +
       "Returns a complete set of files ready to build.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        scenario: { type: "string" },
-        components: {
-          type: "array",
-          items: { type: "string", enum: ["POS", "CRT", "RetailServer", "HardwareStation"] },
-        },
-        solutionName: { type: "string" },
-        namespace: { type: "string" },
-        publisher: { type: "string" },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "scenario", "components"],
-    },
   },
   schema: GenerateSolutionSchema,
   handler: async (input: unknown) => {

@@ -17,16 +17,6 @@ export const SearchCRTApiTool: RegisteredTool = {
     description:
       "Searches for official Commerce Runtime (CRT) APIs, services, request handlers, " +
       "and extension points for the detected Commerce version.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-        maxResults: { type: "number" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchCRTApiSchema,
   handler: async (input: unknown) => {

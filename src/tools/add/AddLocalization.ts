@@ -14,24 +14,6 @@ export const AddLocalizationTool: RegisteredTool = {
   definition: {
     name: "AddLocalization",
     description: "Generates a Store Commerce POS localization resource file (JSON) for a given locale. Follows the official pattern for POS extension localization.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        resourceName: { type: "string" },
-        locale: { type: "string" },
-        keys: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: { key: { type: "string" }, value: { type: "string" } },
-            required: ["key", "value"],
-          },
-        },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "resourceName"],
-    },
   },
   schema: AddLocalizationSchema,
   handler: async (input: unknown) => {

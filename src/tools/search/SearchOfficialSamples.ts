@@ -18,16 +18,6 @@ export const SearchOfficialSamplesTool: RegisteredTool = {
       "Searches the official Microsoft/Dynamics365Commerce.Solutions repository for samples " +
       "matching the detected or specified Commerce version. Uses the local SDK cache first, " +
       "then falls back to GitHub API. Returns sample path, description, and GitHub URL.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        version: { type: "string", description: "Commerce version (auto-detected if omitted)" },
-        workspacePath: { type: "string", description: "Used to auto-detect version if not provided" },
-        maxResults: { type: "number" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchOfficialSamplesSchema,
   handler: async (input: unknown) => {

@@ -17,16 +17,6 @@ export const SearchHardwareStationTool: RegisteredTool = {
     description:
       "Searches for official Hardware Station extension APIs, device handlers, " +
       "and peripheral integration patterns for the detected Commerce version.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-        maxResults: { type: "number" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchHardwareStationSchema,
   handler: async (input: unknown) => {

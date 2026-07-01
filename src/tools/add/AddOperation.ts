@@ -18,17 +18,6 @@ export const AddOperationTool: RegisteredTool = {
   definition: {
     name: "AddOperation",
     description: "Generates a custom Store Commerce POS operation following the official Microsoft pattern. Custom operation IDs must be >= 4000. Validates before generating code.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        name: { type: "string", description: "Class name e.g. CustomPriceOverrideOperation" },
-        operationId: { type: "number", description: "Custom operation ID (>= 4000)" },
-        description: { type: "string" },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "name", "operationId"],
-    },
   },
   schema: AddOperationSchema,
   handler: async (input: unknown) => {

@@ -21,18 +21,6 @@ export const AddTriggerTool: RegisteredTool = {
   definition: {
     name: "AddTrigger",
     description: "Generates an official Store Commerce POS trigger (Pre/Post/Cancel) validated against the official SDK for the detected version. Runs PatternValidator before generating code.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        name: { type: "string", description: "Class name e.g. PostCustomerSearchTrigger" },
-        triggerType: { type: "string", enum: ["Pre", "Post", "Cancel"] },
-        triggerTypeName: { type: "string", description: "Trigger type e.g. LogOn, SuspendTransaction" },
-        namespace: { type: "string" },
-        outputDir: { type: "string" },
-      },
-      required: ["workspacePath", "name", "triggerType", "triggerTypeName"],
-    },
   },
   schema: AddTriggerSchema,
   handler: async (input: unknown) => {

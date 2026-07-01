@@ -13,7 +13,9 @@ import { renderTrigger, TriggerTemplateParams } from "../templates/pos/trigger.j
 import { renderOperation, OperationTemplateParams } from "../templates/pos/operation.js";
 import { renderDialogRequest, renderDialogHandler, DialogTemplateParams } from "../templates/pos/dialog.js";
 import { renderViewController, renderViewHtml, ViewTemplateParams } from "../templates/pos/view.js";
-import { renderControl, ControlTemplateParams } from "../templates/pos/control.js";
+import { renderCartViewController, renderCartViewCustomControl, renderCartViewCustomControlHtml, renderControlManifestSnippet, ControlTemplateParams } from "../templates/pos/control.js";
+import { renderCustomColumn, renderCustomColumnManifestSnippet, CustomColumnTemplateParams, GridType } from "../templates/pos/customColumn.js";
+import { renderTotalsField, renderTotalsFieldManifestSnippet, TotalsFieldTemplateParams } from "../templates/pos/totalsField.js";
 import { renderManifest, ManifestTemplateParams, ManifestComponents } from "../templates/pos/manifest.js";
 import { renderCRTRequest, renderCRTResponse, renderCRTHandler, renderCRTExtConfig, CRTHandlerTemplateParams } from "../templates/crt/requestHandler.js";
 import { renderRSController, renderRSCsproj, RSControllerTemplateParams } from "../templates/retail-server/controller.js";
@@ -225,27 +227,158 @@ export class CodeGenerator {
 
   async addPosControl(params: {
     className: string;
+    controlName: string;
+    folder: string;
+    packageName: string;
     description: string;
     outputDir: string;
     version: CommerceVersion;
     workspacePath?: string;
   }): Promise<GenerationResult> {
-    const validation = await this.validate("ICustomControlContext", "POS", "Control", params.version, params.workspacePath);
+    const validation = await this.validate("CartViewCustomControlBase", "POS", "Control", params.version, params.workspacePath);
     if (!validation.approved) return blocked(validation);
 
-    const p: ControlTemplateParams = { className: params.className, description: params.description };
+    const p: ControlTemplateParams = {
+      className: params.className,
+      controlName: params.controlName,
+      folder: params.folder,
+      packageName: params.packageName,
+      description: params.description,
+    };
+
+    const base = path.join(params.outputDir, params.folder).replace(/\\/g, "/");
+
+    const manifestSnippet = renderControlManifestSnippet(p);
 
     return {
       success: true,
       files: [
         {
-          relativePath: path.join(params.outputDir, "Controls", `${params.className}.ts`).replace(/\\/g, "/"),
-          content: renderControl(p),
+          relativePath: `${base}/${params.className}CartViewController.ts`,
+          content: renderCartViewController(p),
           language: "typescript",
+        },
+        {
+          relativePath: `${base}/${params.className}CustomControl.ts`,
+          content: renderCartViewCustomControl(p),
+          language: "typescript",
+        },
+        {
+          relativePath: `${base}/${params.className}CustomControl.html`,
+          content: renderCartViewCustomControlHtml(p),
+          language: "html",
         },
       ],
       validationResult: validation,
-      notes: [],
+      notes: [
+        `Add to manifest.json under components.extend:`,
+        JSON.stringify(manifestSnippet, null, 2),
+        ``,
+        `Then in HQ → Screen Layouts → Designer, add the custom control panel with:`,
+        `  Control Name : ${params.controlName}`,
+        `  Package Name : ${params.packageName}`,
+        `  Publisher    : (your publisher from manifest.json)`,
+        `Run distribution job 1090 (Registers) after saving the layout.`,
+      ],
+    };
+  }
+
+  async addPosCustomColumn(params: {
+    className: string;
+    title: string;
+    gridType: GridType;
+    columnNumber: number;
+    description: string;
+    outputDir: string;
+    version: CommerceVersion;
+    workspacePath?: string;
+  }): Promise<GenerationResult> {
+    const baseClass = params.gridType === "Lines"    ? "CustomLinesGridColumnBase"
+                    : params.gridType === "Payments" ? "CustomPaymentsGridColumnBase"
+                    :                                  "CustomDeliveryGridColumnBase";
+    const validation = await this.validate(baseClass, "POS", "Control", params.version, params.workspacePath);
+    if (!validation.approved) return blocked(validation);
+
+    const p: CustomColumnTemplateParams = {
+      className:    params.className,
+      title:        params.title,
+      gridType:     params.gridType,
+      columnNumber: params.columnNumber,
+      description:  params.description,
+    };
+
+    const filePath = path.join(params.outputDir, `${params.className}.ts`).replace(/\\/g, "/");
+    const modulePath = filePath
+      .replace(/\\/g, "/")
+      .replace(/\.ts$/, "")
+      .split("Extensions/")
+      .pop() ?? params.className;
+
+    const manifestSnippet = renderCustomColumnManifestSnippet(p, modulePath);
+
+    return {
+      success: true,
+      files: [
+        { relativePath: filePath, content: renderCustomColumn(p), language: "typescript" },
+      ],
+      validationResult: validation,
+      notes: [
+        `Add to manifest.json under components.extend:`,
+        JSON.stringify(manifestSnippet, null, 2),
+        ``,
+        `HQ configuration (required before the column appears in POS):`,
+        `  1. Go to Screen Layouts → select your layout → Designer`,
+        `  2. Right-click the transaction grid → Customize`,
+        `  3. In the Lines pivot, move "Custom column ${params.columnNumber}" to Selected columns`,
+        `  4. Run Retail and Commerce IT → Distribution schedule → Registers (1090)`,
+      ],
+    };
+  }
+
+  async addPosTotalsField(params: {
+    className: string;
+    fieldName: string;
+    description: string;
+    outputDir: string;
+    version: CommerceVersion;
+    workspacePath?: string;
+  }): Promise<GenerationResult> {
+    const validation = await this.validate("CartViewTotalsPanelCustomFieldBase", "POS", "Control", params.version, params.workspacePath);
+    if (!validation.approved) return blocked(validation);
+
+    const p: TotalsFieldTemplateParams = {
+      className:   params.className,
+      fieldName:   params.fieldName,
+      description: params.description,
+    };
+
+    const filePath = path.join(params.outputDir, `${params.className}.ts`).replace(/\\/g, "/");
+    const modulePath = filePath
+      .replace(/\\/g, "/")
+      .replace(/\.ts$/, "")
+      .split("Extensions/")
+      .pop() ?? params.className;
+
+    const manifestSnippet = renderTotalsFieldManifestSnippet(p, modulePath);
+
+    return {
+      success: true,
+      files: [
+        { relativePath: filePath, content: renderTotalsField(p), language: "typescript" },
+      ],
+      validationResult: validation,
+      notes: [
+        `Add to manifest.json under components.extend:`,
+        JSON.stringify(manifestSnippet, null, 2),
+        ``,
+        `Required HQ configuration (must be done before testing in POS):`,
+        `  1. Language Text → POS tab → Add text (Text ID + label for each language)`,
+        `  2. Custom Fields → New: Name="${params.fieldName}", Type="Totals area", Caption text ID=<id from step 1>`,
+        `  3. Screen Layouts → Designer → right-click Totals panel → Customize → move "${params.fieldName}" to a column`,
+        `  4. Run Retail and Commerce IT → Distribution schedule → Registers (1090)`,
+        ``,
+        `The fieldName "${params.fieldName}" in manifest.json MUST exactly match the Name in HQ Custom Fields.`,
+      ],
     };
   }
 

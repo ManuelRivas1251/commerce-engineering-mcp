@@ -1,8 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { logger } from "./core/Logger.js";
 import { ToolRegistry } from "./core/ToolRegistry.js";
+import { assertPathAllowed, getAllowedRoots } from "./core/PathGuard.js";
 
 // ── Workspace tools ──────────────────────────────────────────────────────────
 import { AnalyzeWorkspaceTool, AnalyzeWorkspaceSchema } from "./tools/workspace/AnalyzeWorkspace.js";
@@ -28,6 +30,8 @@ import { AddOperationTool, AddOperationSchema } from "./tools/add/AddOperation.j
 import { AddDialogTool, AddDialogSchema } from "./tools/add/AddDialog.js";
 import { AddViewTool, AddViewSchema } from "./tools/add/AddView.js";
 import { AddControlTool, AddControlSchema } from "./tools/add/AddControl.js";
+import { AddCustomColumnTool, AddCustomColumnSchema } from "./tools/add/AddCustomColumn.js";
+import { AddTotalsFieldTool, AddTotalsFieldSchema } from "./tools/add/AddTotalsField.js";
 import { AddLocalizationTool, AddLocalizationSchema } from "./tools/add/AddLocalization.js";
 import { AddManifestTool, AddManifestSchema } from "./tools/add/AddManifest.js";
 
@@ -48,6 +52,11 @@ import { ListExistingViewsTool, ListExistingViewsSchema } from "./tools/list/Lis
 import { PatternValidatorTool, PatternValidatorSchema } from "./tools/validate/PatternValidator.js";
 import { ArchitectureReviewTool, ArchitectureReviewSchema } from "./tools/validate/ArchitectureReview.js";
 import { GenerateSolutionTool, GenerateSolutionSchema } from "./tools/validate/GenerateSolution.js";
+import { ValidateManifestTool, ValidateManifestSchema } from "./tools/validate/ValidateManifest.js";
+
+// ── Build tools ──────────────────────────────────────────────────────────────
+import { BuildExtensionTool, BuildExtensionSchema } from "./tools/build/BuildExtension.js";
+import { PackageInstallerTool, PackageInstallerSchema } from "./tools/build/PackageInstaller.js";
 
 // ── Resources ────────────────────────────────────────────────────────────────
 import { WORKSPACE_RESOURCES } from "./resources/WorkspaceResource.js";
@@ -58,6 +67,7 @@ import {
   handleRequestsResource,
   handleSdkResource,
   handleArchitectureResource,
+  handleDocsResource,
   saveLastWorkspace,
 } from "./resources/ResourceHandlers.js";
 
@@ -66,49 +76,69 @@ import { ArchitectModePrompt, buildArchitectModeMessage } from "./prompts/Archit
 import { ImplementModePrompt, buildImplementModeMessage } from "./prompts/ImplementModePrompt.js";
 import { E2ESolutionPrompt, buildE2ESolutionMessage } from "./prompts/E2ESolutionPrompt.js";
 
+// ── Tool annotations ──────────────────────────────────────────────────────────
+// Hints for MCP clients (permission UIs, auto-approval policies).
+
+// Pure lookups against local/static data.
+const READ_LOCAL: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
+// Lookups that may call GitHub / Microsoft Learn.
+const READ_NETWORK: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: true };
+// Generate code as tool output (nothing written to the workspace); validators may hit the network.
+const GENERATE: ToolAnnotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+// Writes the workspace index under <workspace>/.mcp/.
+const INDEX_WRITE: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+// Runs the .NET build toolchain (writes bin/obj, NuGet restore hits the network).
+const BUILD: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+
 // ── Registry ──────────────────────────────────────────────────────────────────
 const registry = new ToolRegistry();
 
 const ALL_TOOLS_WITH_SCHEMA = [
   // Workspace
-  { tool: AnalyzeWorkspaceTool, schema: AnalyzeWorkspaceSchema },
-  { tool: DetectCommerceVersionTool, schema: DetectCommerceVersionSchema },
-  { tool: RefreshWorkspaceIndexTool, schema: RefreshWorkspaceIndexSchema },
+  { tool: AnalyzeWorkspaceTool, schema: AnalyzeWorkspaceSchema, annotations: INDEX_WRITE },
+  { tool: DetectCommerceVersionTool, schema: DetectCommerceVersionSchema, annotations: READ_LOCAL },
+  { tool: RefreshWorkspaceIndexTool, schema: RefreshWorkspaceIndexSchema, annotations: INDEX_WRITE },
   // Search
-  { tool: SearchMicrosoftLearnTool, schema: SearchMicrosoftLearnSchema },
-  { tool: SearchOfficialSamplesTool, schema: SearchOfficialSamplesSchema },
-  { tool: SearchSDKTool, schema: SearchSDKSchema },
-  { tool: SearchPOSApiTool, schema: SearchPOSApiSchema },
-  { tool: SearchCRTApiTool, schema: SearchCRTApiSchema },
-  { tool: SearchRetailServerTool, schema: SearchRetailServerSchema },
-  { tool: SearchHardwareStationTool, schema: SearchHardwareStationSchema },
-  { tool: SearchDocumentationTool, schema: SearchDocumentationSchema },
-  { tool: SearchSamplesByVersionTool, schema: SearchSamplesByVersionSchema },
-  { tool: GetOfficialPatternTool, schema: GetOfficialPatternSchema },
-  { tool: GetHQIntegrationGuideTool, schema: GetHQIntegrationGuideSchema },  // Phase 7
+  { tool: SearchMicrosoftLearnTool, schema: SearchMicrosoftLearnSchema, annotations: READ_NETWORK },
+  { tool: SearchOfficialSamplesTool, schema: SearchOfficialSamplesSchema, annotations: READ_NETWORK },
+  { tool: SearchSDKTool, schema: SearchSDKSchema, annotations: READ_NETWORK },
+  { tool: SearchPOSApiTool, schema: SearchPOSApiSchema, annotations: READ_NETWORK },
+  { tool: SearchCRTApiTool, schema: SearchCRTApiSchema, annotations: READ_NETWORK },
+  { tool: SearchRetailServerTool, schema: SearchRetailServerSchema, annotations: READ_NETWORK },
+  { tool: SearchHardwareStationTool, schema: SearchHardwareStationSchema, annotations: READ_NETWORK },
+  { tool: SearchDocumentationTool, schema: SearchDocumentationSchema, annotations: READ_NETWORK },
+  { tool: SearchSamplesByVersionTool, schema: SearchSamplesByVersionSchema, annotations: READ_NETWORK },
+  { tool: GetOfficialPatternTool, schema: GetOfficialPatternSchema, annotations: READ_NETWORK },
+  { tool: GetHQIntegrationGuideTool, schema: GetHQIntegrationGuideSchema, annotations: READ_LOCAL },
   // Add
-  { tool: AddTriggerTool, schema: AddTriggerSchema },
-  { tool: AddOperationTool, schema: AddOperationSchema },
-  { tool: AddDialogTool, schema: AddDialogSchema },
-  { tool: AddViewTool, schema: AddViewSchema },
-  { tool: AddControlTool, schema: AddControlSchema },
-  { tool: AddLocalizationTool, schema: AddLocalizationSchema },
-  { tool: AddManifestTool, schema: AddManifestSchema },
+  { tool: AddTriggerTool, schema: AddTriggerSchema, annotations: GENERATE },
+  { tool: AddOperationTool, schema: AddOperationSchema, annotations: GENERATE },
+  { tool: AddDialogTool, schema: AddDialogSchema, annotations: GENERATE },
+  { tool: AddViewTool, schema: AddViewSchema, annotations: GENERATE },
+  { tool: AddControlTool, schema: AddControlSchema, annotations: GENERATE },
+  { tool: AddCustomColumnTool, schema: AddCustomColumnSchema, annotations: GENERATE },
+  { tool: AddTotalsFieldTool, schema: AddTotalsFieldSchema, annotations: GENERATE },
+  { tool: AddLocalizationTool, schema: AddLocalizationSchema, annotations: GENERATE },
+  { tool: AddManifestTool, schema: AddManifestSchema, annotations: GENERATE },
   // Create
-  { tool: CreateStoreCommerceProjectTool, schema: CreateStoreCommerceProjectSchema },
-  { tool: CreateCRTProjectTool, schema: CreateCRTProjectSchema },
-  { tool: CreateRetailServerExtensionTool, schema: CreateRetailServerExtensionSchema },
-  { tool: CreateHardwareStationExtensionTool, schema: CreateHardwareStationExtensionSchema },
+  { tool: CreateStoreCommerceProjectTool, schema: CreateStoreCommerceProjectSchema, annotations: GENERATE },
+  { tool: CreateCRTProjectTool, schema: CreateCRTProjectSchema, annotations: GENERATE },
+  { tool: CreateRetailServerExtensionTool, schema: CreateRetailServerExtensionSchema, annotations: GENERATE },
+  { tool: CreateHardwareStationExtensionTool, schema: CreateHardwareStationExtensionSchema, annotations: GENERATE },
   // List
-  { tool: ListExistingOperationsTool, schema: ListExistingOperationsSchema },
-  { tool: ListExistingTriggersTool, schema: ListExistingTriggersSchema },
-  { tool: ListExistingRequestsTool, schema: ListExistingRequestsSchema },
-  { tool: ListExistingDialogsTool, schema: ListExistingDialogsSchema },
-  { tool: ListExistingViewsTool, schema: ListExistingViewsSchema },
+  { tool: ListExistingOperationsTool, schema: ListExistingOperationsSchema, annotations: READ_LOCAL },
+  { tool: ListExistingTriggersTool, schema: ListExistingTriggersSchema, annotations: READ_LOCAL },
+  { tool: ListExistingRequestsTool, schema: ListExistingRequestsSchema, annotations: READ_LOCAL },
+  { tool: ListExistingDialogsTool, schema: ListExistingDialogsSchema, annotations: READ_LOCAL },
+  { tool: ListExistingViewsTool, schema: ListExistingViewsSchema, annotations: READ_LOCAL },
   // Validate
-  { tool: PatternValidatorTool, schema: PatternValidatorSchema },
-  { tool: ArchitectureReviewTool, schema: ArchitectureReviewSchema },
-  { tool: GenerateSolutionTool, schema: GenerateSolutionSchema },
+  { tool: PatternValidatorTool, schema: PatternValidatorSchema, annotations: READ_NETWORK },
+  { tool: ArchitectureReviewTool, schema: ArchitectureReviewSchema, annotations: READ_LOCAL },
+  { tool: GenerateSolutionTool, schema: GenerateSolutionSchema, annotations: GENERATE },
+  { tool: ValidateManifestTool, schema: ValidateManifestSchema, annotations: READ_LOCAL },
+  // Build
+  { tool: BuildExtensionTool, schema: BuildExtensionSchema, annotations: BUILD },
+  { tool: PackageInstallerTool, schema: PackageInstallerSchema, annotations: BUILD },
 ] as const;
 
 for (const { tool } of ALL_TOOLS_WITH_SCHEMA) {
@@ -121,18 +151,31 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// Register all tools using Zod shape directly (SDK 1.29 API)
-for (const { tool, schema } of ALL_TOOLS_WITH_SCHEMA) {
+// Tool inputs that carry filesystem paths, validated against COMMERCE_ALLOWED_ROOTS.
+const PATH_INPUT_KEYS = ["workspacePath", "targetPath", "projectPath", "installerProjectPath", "manifestPath"] as const;
+
+// Register all tools. The SDK derives the JSON Schema from the Zod shape and
+// validates every call against it before invoking the handler.
+for (const { tool, schema, annotations } of ALL_TOOLS_WITH_SCHEMA) {
   const shape = (schema as z.ZodObject<z.ZodRawShape>).shape;
-  server.tool(
+  server.registerTool(
     tool.definition.name,
-    tool.definition.description,
-    shape,
-    async (input) => {
+    {
+      description: tool.definition.description,
+      inputSchema: shape,
+      annotations,
+    },
+    async (input: Record<string, unknown>) => {
       try {
+        for (const key of PATH_INPUT_KEYS) {
+          const value = input[key];
+          if (typeof value === "string" && value.length > 0) {
+            assertPathAllowed(value, key);
+          }
+        }
+
         // Side-effect: track last workspace for resources
-        const anyInput = input as Record<string, unknown>;
-        const wsPath = (anyInput["workspacePath"] ?? anyInput["targetPath"]) as string | undefined;
+        const wsPath = (input["workspacePath"] ?? input["targetPath"]) as string | undefined;
         if (wsPath) saveLastWorkspace(wsPath).catch(() => {/* non-fatal */});
 
         const result = await registry.dispatch(tool.definition.name, input);
@@ -160,13 +203,18 @@ const RESOURCE_HANDLERS: Record<string, () => Promise<string>> = {
   "commerce://requests": handleRequestsResource,
   "commerce://sdk": handleSdkResource,
   "commerce://architecture": handleArchitectureResource,
+  "commerce://docs": handleDocsResource,
 };
 
 for (const resource of WORKSPACE_RESOURCES) {
   const handler = RESOURCE_HANDLERS[resource.uri];
-  server.resource(
+  server.registerResource(
     resource.name,
     resource.uri,
+    {
+      description: resource.description,
+      mimeType: resource.mimeType ?? "application/json",
+    },
     async () => {
       const text = handler
         ? await handler().catch((err) =>
@@ -189,10 +237,15 @@ for (const resource of WORKSPACE_RESOURCES) {
 
 // ── Prompts with real content ─────────────────────────────────────────────────
 
-server.prompt(
+server.registerPrompt(
   ArchitectModePrompt.name,
-  ArchitectModePrompt.description ?? "",
-  { scenario: z.string().describe("The Commerce scenario or feature to design"), workspacePath: z.string().optional().describe("Workspace path") },
+  {
+    description: ArchitectModePrompt.description ?? "",
+    argsSchema: {
+      scenario: z.string().describe("The Commerce scenario or feature to design"),
+      workspacePath: z.string().optional().describe("Workspace path"),
+    },
+  },
   async ({ scenario, workspacePath }) => ({
     messages: [{
       role: "user" as const,
@@ -201,10 +254,15 @@ server.prompt(
   })
 );
 
-server.prompt(
+server.registerPrompt(
   ImplementModePrompt.name,
-  ImplementModePrompt.description ?? "",
-  { task: z.string().describe("What to implement"), workspacePath: z.string().describe("Path to the workspace") },
+  {
+    description: ImplementModePrompt.description ?? "",
+    argsSchema: {
+      task: z.string().describe("What to implement"),
+      workspacePath: z.string().describe("Path to the workspace"),
+    },
+  },
   async ({ task, workspacePath }) => ({
     messages: [{
       role: "user" as const,
@@ -213,13 +271,15 @@ server.prompt(
   })
 );
 
-server.prompt(
+server.registerPrompt(
   E2ESolutionPrompt.name,
-  E2ESolutionPrompt.description ?? "",
   {
-    scenario: z.string().describe("The E2E scenario to implement"),
-    workspacePath: z.string().describe("Path to the workspace"),
-    components: z.string().optional().describe("Comma-separated: POS,CRT,RetailServer,HardwareStation"),
+    description: E2ESolutionPrompt.description ?? "",
+    argsSchema: {
+      scenario: z.string().describe("The E2E scenario to implement"),
+      workspacePath: z.string().describe("Path to the workspace"),
+      components: z.string().optional().describe("Comma-separated: POS,CRT,RetailServer,HardwareStation"),
+    },
   },
   async ({ scenario, workspacePath, components }) => ({
     messages: [{
@@ -238,6 +298,7 @@ async function main(): Promise<void> {
       tools: ALL_TOOLS_WITH_SCHEMA.length,
       resources: WORKSPACE_RESOURCES.length,
       prompts: 3,
+      allowedRoots: getAllowedRoots(),
     },
     "commerce-engineering-mcp started"
   );

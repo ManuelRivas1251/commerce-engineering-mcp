@@ -17,16 +17,6 @@ export const SearchRetailServerTool: RegisteredTool = {
     description:
       "Searches for official Retail Server / Commerce Scale Unit extension APIs, " +
       "controllers, and entity patterns for the detected Commerce version.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-        maxResults: { type: "number" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchRetailServerSchema,
   handler: async (input: unknown) => {

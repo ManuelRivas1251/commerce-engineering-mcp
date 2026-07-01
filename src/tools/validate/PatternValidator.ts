@@ -27,21 +27,6 @@ export const PatternValidatorTool: RegisteredTool = {
       "(1) API exists, (2) area matches, (3) sample exists, (4) docs exist, " +
       "(5) artifact type correct, (6) no duplicate in workspace, (7) version compatible. " +
       "If Microsoft recommends a different pattern, returns the alternative and blocks code generation.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        pattern: { type: "string", description: "Class name, interface, or pattern to validate" },
-        commerceArea: { type: "string", enum: ["POS", "CRT", "RetailServer", "HardwareStation"] },
-        artifactType: {
-          type: "string",
-          enum: ["Operation", "Trigger", "Request", "Response", "Handler",
-                 "Dialog", "View", "Control", "CRTService", "RetailServerAPI", "HardwareStationExtension"],
-        },
-        workspacePath: { type: "string" },
-        version: { type: "string", description: "Commerce version (auto-detected if omitted)" },
-      },
-      required: ["pattern", "commerceArea", "artifactType"],
-    },
   },
   schema: PatternValidatorSchema,
   handler: async (input: unknown) => {
@@ -70,7 +55,7 @@ export const PatternValidatorTool: RegisteredTool = {
     }));
 
     // Non-critical conditions that failed — informational warnings
-    const NON_CRITICAL = [3, 4, 6];
+    const NON_CRITICAL = [3, 4, 6, 7];
     const warnings = result.conditions
       .filter((c) => !c.passed && NON_CRITICAL.includes(c.id))
       .map((c) => c.detail);

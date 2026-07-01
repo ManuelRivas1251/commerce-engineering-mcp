@@ -26,31 +26,6 @@ export const GetHQIntegrationGuideTool: RegisteredTool = {
       "via CDX (Commerce Data Exchange), channel database extensions, and AX table/form extensions. " +
       "Covers: HQ→Channel sync (CDX Download), Channel→HQ upload (P-jobs), channel DB extension scripts, " +
       "and HQ AOT extensions. All content grounded in official Microsoft documentation.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        topic: {
-          type: "string",
-          enum: [
-            "hq-to-channel",
-            "channel-to-hq",
-            "channel-db-extension",
-            "hq-table-extension",
-            "hq-cdx-job",
-            "hq-sync-subjob",
-            "retail-channel-table",
-            "hq-form-extension",
-            "integration-map",
-          ],
-          description: "The HQ/CDX integration topic to get guidance for",
-        },
-        scenario: {
-          type: "string",
-          description: "Scenario description — used with integration-map to auto-select relevant guidance",
-        },
-      },
-      required: ["topic"],
-    },
   },
   schema: GetHQIntegrationGuideSchema,
   handler: async (input: unknown) => {

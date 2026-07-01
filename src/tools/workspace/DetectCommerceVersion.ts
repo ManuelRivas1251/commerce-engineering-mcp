@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { RegisteredTool } from "../../core/ToolRegistry.js";
 import { VersionResolver } from "../../core/VersionResolver.js";
+import { directoryExists } from "../../core/PathGuard.js";
 
 export const DetectCommerceVersionSchema = z.object({
   workspacePath: z.string().min(1).describe("Absolute path to the workspace root"),
@@ -18,17 +19,19 @@ export const DetectCommerceVersionTool: RegisteredTool = {
       "CustomizationPackage.props, package.json, .csproj files, CommerceRuntime.config, " +
       "manifest.json, and lock files. Never assumes a version — reports UNKNOWN if not determinable " +
       "and the user must provide it.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string", description: "Absolute path to the workspace root" },
-      },
-      required: ["workspacePath"],
-    },
   },
   schema: DetectCommerceVersionSchema,
   handler: async (input: unknown) => {
     const { workspacePath } = input as DetectCommerceVersionInput;
+
+    if (!(await directoryExists(workspacePath))) {
+      return {
+        detected: false,
+        message: `Workspace path does not exist or is not a directory: ${workspacePath}. Verify the path and try again.`,
+        version: null,
+      };
+    }
+
     const version = await resolver.resolve(workspacePath);
 
     if (version.confidence === "UNKNOWN") {

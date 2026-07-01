@@ -10,11 +10,6 @@ export const ListExistingViewsTool: RegisteredTool = {
   definition: {
     name: "ListExistingViews",
     description: "Returns all custom POS Views detected in the workspace from the local index.",
-    inputSchema: {
-      type: "object",
-      properties: { workspacePath: { type: "string" } },
-      required: ["workspacePath"],
-    },
   },
   schema: ListExistingViewsSchema,
   handler: async (input: unknown) => {

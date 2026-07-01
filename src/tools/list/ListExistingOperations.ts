@@ -10,11 +10,6 @@ export const ListExistingOperationsTool: RegisteredTool = {
   definition: {
     name: "ListExistingOperations",
     description: "Returns all custom POS operations detected in the workspace from the local index.",
-    inputSchema: {
-      type: "object",
-      properties: { workspacePath: { type: "string" } },
-      required: ["workspacePath"],
-    },
   },
   schema: ListExistingOperationsSchema,
   handler: async (input: unknown) => {

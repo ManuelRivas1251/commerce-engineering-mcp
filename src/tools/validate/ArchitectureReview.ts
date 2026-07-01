@@ -19,19 +19,6 @@ export const ArchitectureReviewTool: RegisteredTool = {
       "objective, required areas (POS/CRT/Retail Server/Hardware Station), artifact recommendations, " +
       "data flow, risks, testing plan, and deployment notes. " +
       "Does NOT generate code — use generate_solution for that.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string" },
-        scenario: { type: "string", description: "Describe the feature or scenario to design" },
-        components: {
-          type: "array",
-          items: { type: "string", enum: ["POS", "CRT", "RetailServer", "HardwareStation"] },
-          description: "Force specific areas (auto-detected if omitted)",
-        },
-      },
-      required: ["workspacePath", "scenario"],
-    },
   },
   schema: ArchitectureReviewSchema,
   handler: async (input: unknown) => {

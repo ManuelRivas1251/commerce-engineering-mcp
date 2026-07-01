@@ -21,20 +21,6 @@ export const CreateCRTProjectTool: RegisteredTool = {
   definition: {
     name: "CreateCRTProject",
     description: "Scaffolds a complete Commerce Runtime (CRT) extension project: Request, Response, Handler .cs files + .csproj + CommerceRuntime.Ext.config. Based on official Microsoft patterns from Dynamics365Commerce.Solutions.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        targetPath: { type: "string" },
-        namespace: { type: "string" },
-        projectName: { type: "string" },
-        handlerName: { type: "string" },
-        requestName: { type: "string" },
-        responseName: { type: "string" },
-        description: { type: "string" },
-        workspacePath: { type: "string" },
-      },
-      required: ["targetPath", "namespace", "projectName", "handlerName"],
-    },
   },
   schema: CreateCRTProjectSchema,
   handler: async (input: unknown) => {

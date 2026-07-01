@@ -18,17 +18,6 @@ export const SearchMicrosoftLearnTool: RegisteredTool = {
     description:
       "Searches Microsoft Learn for official Dynamics 365 Commerce documentation. " +
       "Always returns sourceUrl and retrievedAt. Never returns results without a verified source.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Search query" },
-        version: { type: "string", description: "Commerce version (auto-detected if omitted)" },
-        workspacePath: { type: "string" },
-        maxResults: { type: "number", description: "Max results (1-20)" },
-        fetchPageContent: { type: "boolean", description: "Also fetch and parse the top result pages" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchMicrosoftLearnSchema,
   handler: async (input: unknown) => {

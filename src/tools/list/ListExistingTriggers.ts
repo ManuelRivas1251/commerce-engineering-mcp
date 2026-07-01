@@ -10,11 +10,6 @@ export const ListExistingTriggersTool: RegisteredTool = {
   definition: {
     name: "ListExistingTriggers",
     description: "Returns all POS triggers detected in the workspace from the local index.",
-    inputSchema: {
-      type: "object",
-      properties: { workspacePath: { type: "string" } },
-      required: ["workspacePath"],
-    },
   },
   schema: ListExistingTriggersSchema,
   handler: async (input: unknown) => {

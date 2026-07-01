@@ -137,16 +137,6 @@ export const GetOfficialPatternTool: RegisteredTool = {
       "Returns the official Microsoft pattern (interfaces, base classes, naming conventions) " +
       "for the requested artifact type and Commerce area. Always validated against the " +
       "official SDK for the detected version.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        artifactType: { type: "string" },
-        area: { type: "string" },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-      },
-      required: ["artifactType", "area"],
-    },
   },
   schema: GetOfficialPatternSchema,
   handler: async (input: unknown) => {

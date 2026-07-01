@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "cheerio": "^1.0.0",
     "fast-glob": "^3.3.3",
     "node-cache": "^5.1.2",

@@ -18,14 +18,6 @@ export const AnalyzeWorkspaceTool: RegisteredTool = {
       "Scans the given workspace and builds a complete model of the Dynamics 365 Commerce project: " +
       "version, SDK, extensions, triggers, operations, dialogs, views, CRT services, " +
       "Retail Server APIs, and Hardware Station extensions. Writes the result to .mcp/workspace-analysis.json.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        workspacePath: { type: "string", description: "Absolute path to the workspace root" },
-        force: { type: "boolean", description: "Force full rebuild even if cache is fresh" },
-      },
-      required: ["workspacePath"],
-    },
   },
   schema: AnalyzeWorkspaceSchema,
   handler: async (input: unknown) => {

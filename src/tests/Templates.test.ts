@@ -9,7 +9,7 @@ import { renderTrigger } from "../templates/pos/trigger.js";
 import { renderOperation } from "../templates/pos/operation.js";
 import { renderDialogRequest, renderDialogHandler } from "../templates/pos/dialog.js";
 import { renderViewController, renderViewHtml } from "../templates/pos/view.js";
-import { renderControl } from "../templates/pos/control.js";
+import { renderCartViewCustomControl } from "../templates/pos/control.js";
 import { renderManifest } from "../templates/pos/manifest.js";
 import { renderCRTRequest, renderCRTResponse, renderCRTHandler, renderCRTExtConfig } from "../templates/crt/requestHandler.js";
 import { renderRSController, renderRSCsproj } from "../templates/retail-server/controller.js";
@@ -118,12 +118,14 @@ describe("POS — View template", () => {
 });
 
 describe("POS — Control template", () => {
-  it("renders control with context and lifecycle methods", () => {
-    const code = renderControl({ className: "NumpadControl", description: "Numpad" });
-    expect(code).toContain("class NumpadControl");
-    expect(code).toContain("ICustomControlContext");
+  it("renders CartViewCustomControlBase with lifecycle methods", () => {
+    const params = { className: "NumpadControl", controlName: "numpadControl", folder: "Cart", packageName: "ContosoExt", description: "Numpad" };
+    const code = renderCartViewCustomControl(params);
+    expect(code).toContain("class NumpadControlCustomControl extends CartViewCustomControlBase");
     expect(code).toContain("onReady(element: HTMLElement)");
-    expect(code).toContain("dispose()");
+    expect(code).toContain("init(state: ICartViewCustomControlState)");
+    expect(code).toContain("ko.observable");
+    expect(code).toContain("cartLineSelectedHandler");
   });
 });
 

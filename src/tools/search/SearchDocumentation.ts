@@ -5,9 +5,9 @@ import { buildSearchContext } from "../../sources/SearchContext.js";
 export const SearchDocumentationSchema = z.object({
   query: z.string().min(1),
   sources: z
-    .array(z.enum(["MicrosoftLearn", "GitHub", "SDK"]))
+    .array(z.enum(["MicrosoftLearn", "GitHub", "SDK", "EmbeddedDocs"]))
     .optional()
-    .default(["MicrosoftLearn", "GitHub", "SDK"]),
+    .default(["EmbeddedDocs", "MicrosoftLearn", "GitHub", "SDK"]),
   workspacePath: z.string().optional(),
   version: z.string().optional(),
   maxResults: z.number().int().min(1).max(20).optional().default(5),
@@ -21,20 +21,6 @@ export const SearchDocumentationTool: RegisteredTool = {
     description:
       "Searches all official sources (Microsoft Learn, GitHub, local SDK cache) simultaneously " +
       "and returns merged, deduplicated results with mandatory source citations.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: { type: "string" },
-        sources: {
-          type: "array",
-          items: { type: "string", enum: ["MicrosoftLearn", "GitHub", "SDK"] },
-        },
-        workspacePath: { type: "string" },
-        version: { type: "string" },
-        maxResults: { type: "number" },
-      },
-      required: ["query"],
-    },
   },
   schema: SearchDocumentationSchema,
   handler: async (input: unknown) => {
@@ -44,6 +30,11 @@ export const SearchDocumentationTool: RegisteredTool = {
     const ctx = await buildSearchContext(workspacePath, version);
     const activeSources = sources ?? ["MicrosoftLearn", "GitHub", "SDK"];
     const retrievedAt = new Date().toISOString();
+
+    // EmbeddedDocs is synchronous — resolve before fanning out
+    const embeddedResults = activeSources.includes("EmbeddedDocs")
+      ? ctx.learn.searchEmbedded(query, maxResults)
+      : [];
 
     // Fan out to all requested sources in parallel
     const [learnResults, githubResults, sdkSamples] = await Promise.all([
@@ -68,9 +59,17 @@ export const SearchDocumentationTool: RegisteredTool = {
       title: string;
       url: string;
       description: string;
-      source: "MicrosoftLearn" | "GitHub" | "SDK";
+      source: "MicrosoftLearn" | "GitHub" | "SDK" | "EmbeddedDocs";
       retrievedAt: string;
     }> = [];
+
+    // EmbeddedDocs first — highest confidence, no network, verbatim from MS Learn
+    for (const r of embeddedResults) {
+      if (r.sourceUrl && !seen.has(r.sourceUrl)) {
+        seen.add(r.sourceUrl);
+        merged.push({ title: r.title, url: r.sourceUrl, description: r.summary, source: "EmbeddedDocs", retrievedAt });
+      }
+    }
 
     for (const r of learnResults) {
       if (r.url && !seen.has(r.url)) {
@@ -101,6 +100,23 @@ export const SearchDocumentationTool: RegisteredTool = {
       merged: merged.slice(0, maxResults),
       mergedCount: merged.length,
       sources: {
+        embeddedDocs: {
+          active: activeSources.includes("EmbeddedDocs"),
+          results: embeddedResults.map((r) => ({
+            id: r.id,
+            title: r.title,
+            url: r.sourceUrl,
+            category: r.category,
+            summary: r.summary,
+            score: r.score,
+            matchedTerms: r.matchedTerms,
+            content: r.content,
+            codeBlocks: r.codeBlocks,
+            retrievedAt: r.retrievedAt,
+          })),
+          count: embeddedResults.length,
+          note: "Static embedded knowledge base — verbatim from Microsoft Learn, always available offline.",
+        },
         microsoftLearn: {
           active: activeSources.includes("MicrosoftLearn"),
           results: learnResults,
