@@ -1,13 +1,13 @@
 # commerce-engineering-mcp
 
-MCP (Model Context Protocol) server for **Dynamics 365 Commerce / Store Commerce** development.
+MCP (Model Context Protocol) server for **Dynics 365 Commerce / Store Commerce** development.
 It gives Claude Desktop, Claude Code, and any MCP-compatible client version-aware, hallucination-guarded
 assistance for building POS, Commerce Runtime (CRT), Retail Server (CSU), and Hardware Station extensions.
 
 ## What it does
 
 - **Scaffolds** full Commerce SDK solutions (repo.props, CustomizationPackage.props, .sln, CRT/POS/ScaleUnit/
-  installers/ChannelDatabase projects) matching the official `Dynamics365Commerce.Solutions` structure,
+  installers/ChannelDatabase projects) matching the official `Dynics365Commerce.Solutions` structure,
   including the real-world MSBuild workarounds the sealed SDK needs.
 - **Generates POS artifacts** — triggers, custom operations, dialogs, views, controls, grid columns,
   totals fields, localization, manifests — validated against the official SDK for the *detected* Commerce
@@ -17,7 +17,7 @@ assistance for building POS, Commerce Runtime (CRT), Retail Server (CSU), and Ha
 - **Indexes your workspace** — detects existing operations, triggers, CRT request/response contracts,
   Retail Server controllers, and exposes them as MCP resources.
 - **Answers from official sources** — embedded Microsoft Learn catalog (~90 articles, offline),
-  live GitHub search over `microsoft/Dynamics365Commerce.Solutions` scoped to your release branch,
+  live GitHub search over `microsoft/Dynics365Commerce.Solutions` scoped to your release branch,
   and CDX/HQ integration guides.
 
 ## Requirements
@@ -29,7 +29,7 @@ assistance for building POS, Commerce Runtime (CRT), Retail Server (CSU), and Ha
 ## Installation
 
 ```powershell
-cd C:\AMSourceControl\Tools\commerce-engineering-mcp
+cd C:\SourceControl\Tools\commerce-engineering-mcp
 npm install
 npm run build
 ```
@@ -50,13 +50,13 @@ npm run typecheck
   "mcpServers": {
     "commerce-engineering-mcp": {
       "command": "node",
-      "args": ["C:\\AMSourceControl\\Tools\\commerce-engineering-mcp\\dist\\server.js"],
+      "args": ["C:\\SourceControl\\Tools\\commerce-engineering-mcp\\dist\\server.js"],
       "env": {
         "LOG_LEVEL": "info",
         "NODE_ENV": "production",
         "GITHUB_TOKEN": "",
-        "COMMERCE_WORKSPACE_PATH": "C:\\AMSourceControl\\Projects",
-        "COMMERCE_ALLOWED_ROOTS": "C:\\AMSourceControl"
+        "COMMERCE_WORKSPACE_PATH": "C:\\SourceControl\\Projects",
+        "COMMERCE_ALLOWED_ROOTS": "C:\\SourceControl"
       }
     }
   }
@@ -69,19 +69,19 @@ A ready-to-copy template lives in [mcp.json](mcp.json).
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `LOG_LEVEL` | pino log level (`debug`, `info`, `warn`, `error`). Logs go to **stderr** — never stdout, which carries the JSON-RPC stream. | `info` |
-| `GITHUB_TOKEN` | Enables GitHub Code Search over the official samples repo. **Never commit a real token** — leave it empty in versioned files and inject it from your client config or OS environment. | unset |
+| `LOG_LEVEL` | pino log level (`debug`, `info`, `warn`, `error`). Logs go to **stderr** — never stdout, which carries the JSON-RPC stre. | `info` |
+| `GITHUB_TOKEN` | Enables GitHub Code Search over the official sples repo. **Never commit a real token** — leave it empty in versioned files and inject it from your client config or OS environment. | unset |
 | `COMMERCE_WORKSPACE_PATH` | Default workspace used by the `commerce://*` resources when a tool hasn't been called yet. | last workspace used, else `cwd` |
-| `COMMERCE_ALLOWED_ROOTS` | Semicolon-separated list of directory roots tools may read, index, or build (e.g. `C:\AMSourceControl;C:\Projects`). When set, any tool call with a path outside these roots is rejected with a clean error. When empty, all paths are allowed. | unset (guard disabled) |
+| `COMMERCE_ALLOWED_ROOTS` | Semicolon-separated list of directory roots tools may read, index, or build (e.g. `C:\SourceControl;C:\Projects`). When set, any tool call with a path outside these roots is rejected with a clean error. When empty, all paths are allowed. | unset (guard disabled) |
 
 ## Tools (38)
 
 | Category | Tools | Notes |
 |---|---|---|
 | Workspace | `AnalyzeWorkspace`, `DetectCommerceVersion`, `RefreshWorkspaceIndex` | Index is written to `<workspace>\.mcp\` |
-| Search | `SearchMicrosoftLearn`, `SearchOfficialSamples`, `SearchSDK`, `SearchPOSApi`, `SearchCRTApi`, `SearchRetailServer`, `SearchHardwareStation`, `SearchDocumentation`, `SearchSamplesByVersion`, `GetOfficialPattern`, `GetHQIntegrationGuide` | Read-only; some call GitHub / Microsoft Learn with 10–15 s timeouts |
+| Search | `SearchMicrosoftLearn`, `SearchOfficialSples`, `SearchSDK`, `SearchPOSApi`, `SearchCRTApi`, `SearchRetailServer`, `SearchHardwareStation`, `SearchDocumentation`, `SearchSplesByVersion`, `GetOfficialPattern`, `GetHQIntegrationGuide` | Read-only; some call GitHub / Microsoft Learn with 10–15 s timeouts |
 | Add (POS artifacts) | `AddTrigger`, `AddOperation`, `AddDialog`, `AddView`, `AddControl`, `AddCustomColumn`, `AddTotalsField`, `AddLocalization`, `AddManifest` | Generated files are **returned as content** — the client writes them under its own permission model; the server never writes into your project |
-| Create (scaffolding) | `CreateStoreCommerceProject`, `CreateCRTProject`, `CreateRetailServerExtension`, `CreateHardwareStationExtension` | Same return-as-content model |
+| Create (scaffolding) | `CreateStoreCommerceProject`, `CreateCRTProject`, `CreateRetailServerExtension`, `CreateHardwareStationExtension` | Se return-as-content model |
 | Validate | `PatternValidator`, `ArchitectureReview`, `GenerateSolution`, `ValidateManifest` | `ValidateManifest` checks an existing manifest.json (required fields, semver, components structure, modulePath existence) |
 | Build | `BuildExtension`, `PackageInstaller` | Run `dotnet build` via `execFile` (no shell), with hard timeout, bounded output, and structured `error CSxxxx` / `MSBxxxx` diagnostics. Build failures never crash the server |
 
