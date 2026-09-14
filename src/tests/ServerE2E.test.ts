@@ -181,6 +181,53 @@ describe("ValidateManifest tool", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("flags custom controls missing required fields and warns about the controlName/layout match", async () => {
+    const { mkdtemp, writeFile, rm } = await import("fs/promises");
+    const os = await import("os");
+    const dir = await mkdtemp(path.join(os.tmpdir(), "manifest-cc-test-"));
+    try {
+      const manifestPath = path.join(dir, "manifest.json");
+      await writeFile(manifestPath, JSON.stringify({
+        name: "ContosoTest",
+        publisher: "Contoso",
+        version: "1.0.0",
+        minimumPosVersion: "9.29.0.0",
+        components: {
+          extend: {
+            views: {
+              CartView: {
+                controlsConfig: {
+                  customControls: [
+                    // Missing required "name" and "description".
+                    { controlName: "weightViewer", htmlPath: "Cart/WeightViewer.html", modulePath: "Cart/WeightViewer" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      }), "utf-8");
+
+      const res = await client.send<{ content: { text: string }[] }>("tools/call", {
+        name: "ValidateManifest",
+        arguments: { manifestPath, checkModulePaths: false },
+      });
+      const data = JSON.parse(res.content[0].text);
+
+      expect(data.customControlsChecked).toBe(1);
+      expect(data.valid).toBe(false);
+      const messages = data.findings.map((f: { message: string }) => f.message).join("\n");
+      // Missing required fields are errors.
+      expect(messages).toContain('required field "name"');
+      expect(messages).toContain('required field "description"');
+      // The controlName/layout reminder is present and names the control.
+      expect(messages).toContain("Control is not configured");
+      expect(messages).toContain("weightViewer");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 // ── BuildExtension tool ────────────────────────────────────────────────────

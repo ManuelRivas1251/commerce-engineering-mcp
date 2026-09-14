@@ -113,6 +113,13 @@ export default class ${p.className}CustomControl extends CartViewCustomControlBa
 
     /**
      * Binds the Knockout template to the given DOM element.
+     *
+     * IMPORTANT: 'element' is an EMPTY host container. POS does NOT inject the markup from the
+     * control's htmlPath into it — the .html only registers the Knockout template below via its
+     * <script type="text/html"> block. Never call element.querySelector(...) expecting the .html
+     * markup to already be there (it returns null and any later render throws
+     * "Cannot read properties of null"). Render by binding a template (as here) or by setting
+     * element.innerHTML yourself.
      */
     public onReady(element: HTMLElement): void {
         ko.applyBindingsToNode(element, {
@@ -121,6 +128,19 @@ export default class ${p.className}CustomControl extends CartViewCustomControlBa
                 data: this
             }
         });
+    }
+
+    /**
+     * Disposes the control and releases its resources.
+     *
+     * If you add timers (setInterval/setTimeout — e.g. to poll a peripheral such as the scale),
+     * event subscriptions, or message-channel handlers, clear them here and guard any async
+     * callbacks so they do not touch the DOM after disposal. For controls that poll a peripheral,
+     * do NOT log on every iteration: logging each failed read floods AppInsights (HTTP 429) — react
+     * only when the displayed state changes.
+     */
+    public dispose(): void {
+        super.dispose();
     }
 
     /**
@@ -172,9 +192,13 @@ export function renderControlManifestSnippet(p: ControlTemplateParams): object {
         controlsConfig: {
           customControls: [
             {
+              // controlName MUST match the "Control name" set in the HQ Screen Layout Designer.
               controlName: p.controlName,
               htmlPath: `${p.folder}/${p.className}CustomControl.html`,
-              modulePath: `${p.folder}/${p.className}CustomControl`
+              modulePath: `${p.folder}/${p.className}CustomControl`,
+              // name and description are required by the POS manifest schema.
+              name: `${p.className}CustomControl`,
+              description: p.description
             }
           ]
         }

@@ -9,7 +9,7 @@ import { renderTrigger } from "../templates/pos/trigger.js";
 import { renderOperation } from "../templates/pos/operation.js";
 import { renderDialogRequest, renderDialogHandler } from "../templates/pos/dialog.js";
 import { renderViewController, renderViewHtml } from "../templates/pos/view.js";
-import { renderCartViewCustomControl } from "../templates/pos/control.js";
+import { renderCartViewCustomControl, renderControlManifestSnippet } from "../templates/pos/control.js";
 import { renderManifest } from "../templates/pos/manifest.js";
 import { renderCRTRequest, renderCRTResponse, renderCRTHandler, renderCRTExtConfig } from "../templates/crt/requestHandler.js";
 import { renderRSController, renderRSCsproj } from "../templates/retail-server/controller.js";
@@ -126,6 +126,30 @@ describe("POS — Control template", () => {
     expect(code).toContain("init(state: ICartViewCustomControlState)");
     expect(code).toContain("ko.observable");
     expect(code).toContain("cartLineSelectedHandler");
+  });
+
+  it("warns about the empty onReady host and disposal pitfalls", () => {
+    const params = { className: "NumpadControl", controlName: "numpadControl", folder: "Cart", packageName: "ContosoExt", description: "Numpad" };
+    const code = renderCartViewCustomControl(params);
+    // The empty-host gotcha must be documented so consumers don't querySelector non-injected markup.
+    expect(code).toContain("EMPTY host");
+    expect(code).toContain("querySelector");
+    // Disposal guidance for timers / peripheral polling must be present.
+    expect(code).toContain("public dispose(): void");
+    expect(code).toContain("AppInsights");
+  });
+
+  it("manifest snippet includes every field the POS schema requires on a custom control", () => {
+    const params = { className: "NumpadControl", controlName: "numpadControl", folder: "Cart", packageName: "ContosoExt", description: "Numpad" };
+    const snippet = renderControlManifestSnippet(params) as {
+      views: { CartView: { controlsConfig: { customControls: Record<string, unknown>[] } } };
+    };
+    const entry = snippet.views.CartView.controlsConfig.customControls[0];
+    for (const field of ["controlName", "htmlPath", "modulePath", "name", "description"]) {
+      expect(entry[field], `missing required field "${field}"`).toBeTruthy();
+    }
+    expect(entry.controlName).toBe("numpadControl");
+    expect(entry.description).toBe("Numpad");
   });
 });
 

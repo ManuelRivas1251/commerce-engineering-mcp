@@ -36,6 +36,9 @@ const KNOWN_CREATE_KEYS = new Set([
   "operations", "templatedDialogs", "views", "dialogs", "customControls",
 ]);
 
+// Fields the POS manifest schema requires on every customControls[] entry.
+const CUSTOM_CONTROL_REQUIRED_FIELDS = ["controlName", "htmlPath", "modulePath", "name", "description"] as const;
+
 // Collect every object bearing a modulePath so we can existence-check them.
 function collectModulePaths(node: unknown, jsonPath: string, out: { jsonPath: string; modulePath: string }[]): void {
   if (Array.isArray(node)) {
@@ -53,14 +56,36 @@ function collectModulePaths(node: unknown, jsonPath: string, out: { jsonPath: st
   }
 }
 
+// Collect every customControls[] entry (under any view or the create section) for registration checks.
+function collectCustomControls(node: unknown, jsonPath: string, out: { jsonPath: string; entry: Record<string, unknown> }[]): void {
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => collectCustomControls(item, `${jsonPath}[${i}]`, out));
+    return;
+  }
+  if (node && typeof node === "object") {
+    for (const [key, value] of Object.entries(node)) {
+      if (key === "customControls" && Array.isArray(value)) {
+        value.forEach((entry, i) => {
+          if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+            out.push({ jsonPath: `${jsonPath}.customControls[${i}]`, entry: entry as Record<string, unknown> });
+          }
+        });
+      } else {
+        collectCustomControls(value, `${jsonPath}.${key}`, out);
+      }
+    }
+  }
+}
+
 export const ValidateManifestTool: RegisteredTool = {
   definition: {
     name: "ValidateManifest",
     description:
       "Validates an existing Store Commerce POS extension manifest.json: JSON well-formedness, " +
       "required fields (name, publisher, version), semver format, minimumPosVersion, components " +
-      "structure (extend/create), unknown keys, and — optionally — that every referenced modulePath " +
-      "exists on disk as a .ts or .js file. Returns errors and warnings; never throws on invalid input.",
+      "structure (extend/create), unknown keys, custom control registrations (required fields and the " +
+      "controlName-must-match-HQ-layout rule), and — optionally — that every referenced modulePath and " +
+      "htmlPath exists on disk. Returns errors and warnings; never throws on invalid input.",
   },
   schema: ValidateManifestSchema,
   handler: async (input: unknown) => {
@@ -182,6 +207,60 @@ export const ValidateManifestTool: RegisteredTool = {
       }
     }
 
+    // ── custom control registrations ────────────────────────────────────
+    const customControls: { jsonPath: string; entry: Record<string, unknown> }[] = [];
+    collectCustomControls(manifest["components"], "components", customControls);
+
+    const manifestDir = path.dirname(p.manifestPath);
+    const controlNames: string[] = [];
+    for (const { jsonPath, entry } of customControls) {
+      for (const field of CUSTOM_CONTROL_REQUIRED_FIELDS) {
+        const value = entry[field];
+        if (typeof value !== "string" || value.length === 0) {
+          findings.push({
+            severity: "error",
+            path: `${jsonPath}.${field}`,
+            message: `Custom control is missing required field "${field}" (POS won't register the control without it).`,
+          });
+        }
+      }
+
+      const htmlPath = entry["htmlPath"];
+      if (typeof htmlPath === "string" && htmlPath.length > 0) {
+        if (!htmlPath.toLowerCase().endsWith(".html")) {
+          findings.push({
+            severity: "error",
+            path: `${jsonPath}.htmlPath`,
+            message: `htmlPath "${htmlPath}" must point to a .html file.`,
+          });
+        } else if (p.checkModulePaths && !(await fileExists(path.join(manifestDir, htmlPath)))) {
+          findings.push({
+            severity: "error",
+            path: `${jsonPath}.htmlPath`,
+            message: `htmlPath "${htmlPath}" does not resolve to a file relative to the manifest.`,
+          });
+        }
+      }
+
+      const controlName = entry["controlName"];
+      if (typeof controlName === "string" && controlName.length > 0) {
+        controlNames.push(controlName);
+      }
+    }
+
+    // The "Control name" configured in the HQ Screen Layout Designer must match controlName
+    // exactly, or the POS logs "Control is not configured" and the control never renders.
+    if (controlNames.length > 0) {
+      findings.push({
+        severity: "warning",
+        path: "components.*.views.*.controlsConfig.customControls",
+        message:
+          `Custom control(s) [${controlNames.join(", ")}] must be placed in the HQ Screen Layout Designer ` +
+          `with a "Control name" that matches the controlName exactly (case-sensitive), along with the ` +
+          `matching publisher and package name. A mismatch logs "Control is not configured" at runtime.`,
+      });
+    }
+
     const errors = findings.filter((f) => f.severity === "error");
     return {
       valid: errors.length === 0,
@@ -189,6 +268,7 @@ export const ValidateManifestTool: RegisteredTool = {
       errorCount: errors.length,
       warningCount: findings.length - errors.length,
       modulePathsChecked: p.checkModulePaths ? modulePaths.length : 0,
+      customControlsChecked: customControls.length,
       findings,
     };
   },
